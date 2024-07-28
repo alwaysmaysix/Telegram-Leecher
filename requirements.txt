@@ -14,7 +14,7 @@ git+https://github.com/Masterolic/pyrogram.git
 requests
 tgcrypto
 uvloop
-git+https://github.com/alwaysmaysix/yt-dlp.git
+yt-dlp
 pymegatools
 beautifulsoup4 
 git+https://github.com/alwaysmaysix/cloudscraper.git
