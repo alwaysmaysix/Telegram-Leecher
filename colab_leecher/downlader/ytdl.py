@@ -72,7 +72,7 @@ def YouTubeDL(url):
         global YTDL
 
         if d["status"] == "downloading":
-            total_bytes = d.get("total_bytes", 0)  # Use 0 as default if total_bytes is None
+            total_bytes = d.get("total_bytes", 0)
             dl_bytes = d.get("downloaded_bytes", 0)
             percent = d.get("downloaded_percent", 0)
             speed = d.get("speed", "N/A")
@@ -89,8 +89,6 @@ def YouTubeDL(url):
             YTDL.left = sizeUnit(total_bytes) if total_bytes else "N/A"
 
         elif d["status"] == "downloading fragment":
-            # log_str = d["message"]
-            # print(log_str, end="")
             pass
         else:
             logging.info(d)
@@ -100,13 +98,13 @@ def YouTubeDL(url):
         "allow_multiple_video_streams": True,
         "allow_multiple_audio_streams": True,
         "writethumbnail": True,
-        "--concurrent-fragments": 4 , # Set the maximum number of concurrent fragments
+        "--concurrent-fragments": 4,
         "allow_playlist_files": True,
         "overwrites": True,
         "postprocessors": [{"key": "FFmpegVideoConvertor", "preferedformat": "mp4"}],
         "progress_hooks": [my_hook],
-        "writesubtitles": "srt",  # Enable subtitles download
-        "extractor_args": {"subtitlesformat": "srt"},  # Extract subtitles in SRT format
+        "writesubtitles": "srt",
+        "extractor_args": {"subtitlesformat": "srt"},
         "logger": MyLogger(),
     }
 
@@ -117,7 +115,7 @@ def YouTubeDL(url):
             info_dict = ydl.extract_info(url, download=False)
             YTDL.header = "⌛ __Please WAIT a bit...__"
             if "_type" in info_dict and info_dict["_type"] == "playlist":
-                playlist_name = info_dict["title"] 
+                playlist_name = info_dict["title"]
                 if not ospath.exists(ospath.join(Paths.down_path, playlist_name)):
                     makedirs(ospath.join(Paths.down_path, playlist_name))
                 ydl_opts["outtmpl"] = {
