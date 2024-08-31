@@ -16,4 +16,4 @@ tgcrypto
 uvloop
 yt_dlp
 pymegatools
-https://github.com/impulse888/yt-dlp-streamtape-plugins/archive/refs/heads/master.zip
+https://github.com/dbiesecke/yt-dlp-streamtape-plugins/archive/refs/heads/master.zip
