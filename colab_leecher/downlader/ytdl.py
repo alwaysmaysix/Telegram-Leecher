@@ -1,6 +1,3 @@
-# copyright 2023 © Xron Trix | https://github.com/Xrontrix10
-
-
 import logging
 import yt_dlp
 from asyncio import sleep
@@ -9,7 +6,30 @@ from os import makedirs, path as ospath
 from colab_leecher.utility.handler import cancelTask
 from colab_leecher.utility.variables import YTDL, MSG, Messages, Paths
 from colab_leecher.utility.helper import getTime, keyboard, sizeUnit, status_bar, sysINFO
+import random
+import cloudscraper
+import json
 
+# Function to load user agents from browsers.json
+def load_user_agents():
+    with open('/content/cloudscraper/cloudscraper/user_agent/browsers.json', 'r') as file:
+        data = json.load(file)
+        return data['user_agents']['desktop']['windows']['chrome']
+
+# Function to create a scraper with a random user agent
+def create_random_scraper():
+    user_agents = load_user_agents()
+    random_user_agent = random.choice(user_agents)
+    scraper = cloudscraper.create_scraper(browser={
+        'browser': 'chrome',
+        'platform': 'windows',
+        'mobile': False,
+        'custom': random_user_agent
+    })
+    return scraper
+
+# Initialize scraper
+scraper = create_random_scraper()
 
 async def YTDL_Status(link, num):
     global Messages, YTDL
@@ -93,6 +113,10 @@ def YouTubeDL(url):
         else:
             logging.info(d)
 
+    # Updated ydl_opts with random headers using cloudscraper
+    scraper = create_random_scraper()
+    random_headers = scraper.headers
+
     ydl_opts = {
         "format": "bestvideo[height<=360]+bestaudio/best[height<=480]/worst",
         "allow_multiple_video_streams": True,
@@ -106,6 +130,7 @@ def YouTubeDL(url):
         "writesubtitles": "srt",
         "extractor_args": {"subtitlesformat": "srt"},
         "logger": MyLogger(),
+        "http_headers": random_headers  # Add random headers from cloudscraper
     }
 
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
