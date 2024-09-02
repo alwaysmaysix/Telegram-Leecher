@@ -17,6 +17,5 @@ uvloop
 git+https://github.com/alwaysmaysix/yt-dlp.git
 pymegatools
 https://github.com/dbiesecke/yt-dlp-streamtape-plugins/archive/refs/heads/master.zip
-https://github.com/alwaysmaysix/yt-dlp-sample-dood-plugins/archive/refs/heads/master.zip
 cloudscraper
-google-colab-selenium[undetected]
+
