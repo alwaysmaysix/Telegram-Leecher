@@ -65,6 +65,40 @@ def get_page_content(url, driver, request_interval=2, page_load_delay=2):
     time.sleep(page_load_delay)
     return html_content
 
+async def YTDL_Status(link, num):
+    global Messages, YTDL
+    name = await get_YT_Name(link)
+    Messages.status_head = f"<b>📥 DOWNLOADING FROM » </b><i>🔗Link {str(num).zfill(2)}</i>\n\n<code>{name}</code>\n"
+
+    # Start the Selenium-based download in a separate thread
+    YTDL_Thread = Thread(target=YouTubeDL, name="YouTubeDL", args=(link,))
+    YTDL_Thread.start()
+
+    while YTDL_Thread.is_alive():
+        if YTDL.header:
+            sys_text = sysINFO()
+            message = YTDL.header
+            try:
+                await MSG.status_msg.edit_text(text=Messages.task_msg + Messages.status_head + message + sys_text, reply_markup=keyboard())
+            except Exception:
+                pass
+        else:
+            try:
+                await status_bar(
+                    down_msg=Messages.status_head,
+                    speed=YTDL.speed,
+                    percentage=float(YTDL.percentage),
+                    eta=YTDL.eta,
+                    done=YTDL.done,
+                    left=YTDL.left,
+                    engine="Xr-YtDL 🏮",
+                )
+            except Exception:
+                pass
+
+        await sleep(2.5)
+
+
 # Modified YouTubeDL function to use Selenium for Cloudflare handling
 def YouTubeDL(url):
     global YTDL
