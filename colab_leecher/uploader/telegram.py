@@ -1,12 +1,10 @@
-# copyright 2023 © Xron Trix | https://github.com/Xrontrix10
-
-
 import logging
 from PIL import Image
 from asyncio import sleep
 from os import path as ospath
 from datetime import datetime
 from pyrogram.errors import FloodWait
+from uuid import uuid4
 from colab_leecher.utility.variables import BOT, Transfer, BotTimes, Messages, MSG, Paths
 from colab_leecher.utility.helper import sizeUnit, fileType, getTime, status_bar, thumbMaintainer, videoExtFix
 
@@ -28,22 +26,21 @@ async def progress_bar(current, total):
         engine="Pyrogram 💥",
     )
 
-
 async def upload_file(file_path, real_name):
     global Transfer, MSG
     BotTimes.task_start = datetime.now()
-    caption = f"<{BOT.Options.caption}>{BOT.Setting.prefix} {real_name} {BOT.Setting.suffix}</{BOT.Options.caption}>"
-    type_ = fileType(file_path)
 
+    # Generate a unique name by appending a UUID
+    unique_name = f"{uuid4()}_{real_name}"
+
+    caption = f"<{BOT.Options.caption}>{BOT.Setting.prefix} {unique_name} {BOT.Setting.suffix}</{BOT.Options.caption}>"
+    type_ = fileType(file_path)
     f_type = type_ if BOT.Options.stream_upload else "document"
 
-    # Upload the file
     try:
         if f_type == "video":
-            # For Renaming to mp4
             if not BOT.Options.stream_upload:
                 file_path = videoExtFix(file_path)
-            # Generate Thumbnail and Get Duration
             thmb_path, seconds = thumbMaintainer(file_path)
             with Image.open(thmb_path) as img:
                 width, height = img.size
@@ -95,10 +92,10 @@ async def upload_file(file_path, real_name):
             )
 
         Transfer.sent_file.append(MSG.sent_msg)
-        Transfer.sent_file_names.append(real_name)
+        Transfer.sent_file_names.append(unique_name)
 
     except FloodWait as e:
-        await sleep(5)  # Wait 5 seconds before Trying Again
+        await sleep(5)  # Wait 5 seconds before trying again
         await upload_file(file_path, real_name)
     except Exception as e:
-        logging.error(f"Error When Uploading : {e}")
+        logging.error(f"Error when uploading: {e}")
