@@ -98,6 +98,25 @@ async def YTDL_Status(link, num):
 
         await sleep(2.5)
 
+class MyLogger:
+    def __init__(self):
+        pass
+
+    def debug(self, msg):
+        global YTDL
+        if "item" in str(msg):
+            msgs = msg.split(" ")
+            YTDL.header = f"\n⏳ __Getting Video Information {msgs[-3]} of {msgs[-1]}__"
+
+    @staticmethod
+    def warning(msg):
+        pass
+
+    @staticmethod
+    def error(msg):
+        # if msg != "ERROR: Cancelling...":
+        # print(msg)
+        pass
 
 # Modified YouTubeDL function to use Selenium for Cloudflare handling
 def YouTubeDL(url):
