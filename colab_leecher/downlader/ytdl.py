@@ -1,6 +1,5 @@
 # copyright 2023 © Xron Trix | https://github.com/Xrontrix10
 
-
 import logging
 import yt_dlp
 from asyncio import sleep
@@ -9,62 +8,64 @@ from os import makedirs, path as ospath
 from colab_leecher.utility.handler import cancelTask
 from colab_leecher.utility.variables import YTDL, MSG, Messages, Paths
 from colab_leecher.utility.helper import getTime, keyboard, sizeUnit, status_bar, sysINFO
+import json
+import google_colab_selenium as gs
+from selenium.webdriver.chrome.options import Options
+from random import choice
+import time
 
+# Load the browsers.json file
+def load_browsers_json():
+    with open('/content/colab_leecher/browsers.json', 'r') as file:
+        return json.load(file)
 
-async def YTDL_Status(link, num):
-    global Messages, YTDL
-    name = await get_YT_Name(link)
-    Messages.status_head = f"<b>📥 DOWNLOADING FROM » </b><i>🔗Link {str(num).zfill(2)}</i>\n\n<code>{name}</code>\n"
+browsers_config = load_browsers_json()
 
-    YTDL_Thread = Thread(target=YouTubeDL, name="YouTubeDL", args=(link,))
-    YTDL_Thread.start()
+# Function to choose a random user agent and corresponding headers
+def select_random_user_agent_and_headers():
+    platform = choice(['desktop', 'mobile'])
+    browser = choice(['chrome', 'firefox'])
+    
+    if platform == 'desktop':
+        os_choice = choice(['windows', 'linux', 'darwin'])
+    else:
+        os_choice = choice(['android', 'ios'])
 
-    while YTDL_Thread.is_alive():  # Until ytdl is downloading
-        if YTDL.header:
-            sys_text = sysINFO()
-            message = YTDL.header
-            try:
-                await MSG.status_msg.edit_text(text=Messages.task_msg + Messages.status_head + message + sys_text, reply_markup=keyboard())
-            except Exception:
-                pass
-        else:
-            try:
-                await status_bar(
-                    down_msg=Messages.status_head,
-                    speed=YTDL.speed,
-                    percentage=float(YTDL.percentage),
-                    eta=YTDL.eta,
-                    done=YTDL.done,
-                    left=YTDL.left,
-                    engine="Xr-YtDL 🏮",
-                )
-            except Exception:
-                pass
+    user_agent = browsers_config['user_agents'][platform][os_choice][browser]
+    headers = browsers_config['headers'][browser]
+    
+    return user_agent, headers
 
-        await sleep(2.5)
+# Setup Selenium with undetected Chrome and mimic real user behavior
+def setup_selenium():
+    user_agent, headers = select_random_user_agent_and_headers()
+    
+    options = Options()
+    options.add_argument('--headless')
+    options.add_argument('--no-sandbox')
+    options.add_argument('--disable-dev-shm-usage')
+    options.add_argument("--window-size=1920,1080")
+    options.add_argument("--disable-infobars")
+    options.add_argument("--disable-popup-blocking")
+    options.add_argument("--ignore-certificate-errors")
+    options.add_argument("--incognito")
+    options.add_argument(f'--user-agent={user_agent}')
+    
+    for key, value in headers.items():
+        options.add_argument(f'--{key.lower()}={value}')
+    
+    driver = gs.Chrome(options=options)
+    return driver
 
+# Retrieve page content with Selenium
+def get_page_content(url, driver, request_interval=2, page_load_delay=2):
+    driver.get(url)
+    time.sleep(request_interval)
+    html_content = driver.page_source
+    time.sleep(page_load_delay)
+    return html_content
 
-class MyLogger:
-    def __init__(self):
-        pass
-
-    def debug(self, msg):
-        global YTDL
-        if "item" in str(msg):
-            msgs = msg.split(" ")
-            YTDL.header = f"\n⏳ __Getting Video Information {msgs[-3]} of {msgs[-1]}__"
-
-    @staticmethod
-    def warning(msg):
-        pass
-
-    @staticmethod
-    def error(msg):
-        # if msg != "ERROR: Cancelling...":
-        # print(msg)
-        pass
-
-
+# Modified YouTubeDL function to use Selenium for Cloudflare handling
 def YouTubeDL(url):
     global YTDL
 
@@ -93,10 +94,14 @@ def YouTubeDL(url):
         else:
             logging.info(d)
 
+    # Initialize Selenium and retrieve page content
+    driver = setup_selenium()
+    html_content = get_page_content(url, driver)
+
     ydl_opts = {
-        "format": "bestvideo[height<=360]+bestaudio/best[height<=480]/worst",
+        "format": "bestvideo[height<=360]+bestaudio/worst",
         "allow_multiple_video_streams": True,
-        "allow_multiple_audio_streams": True,
+        "allow_multiple audio_streams": True,
         "writethumbnail": True,
         "--concurrent-fragments": 4,
         "allow_playlist_files": True,
