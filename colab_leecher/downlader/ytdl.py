@@ -16,7 +16,7 @@ import time
 
 # Load the browsers.json file
 def load_browsers_json():
-    with open('/content/colab_leecher/browsers.json', 'r') as file:
+    with open('/content/Telegram-Leecher/colab_leecher/browsers.json', 'r') as file:
         return json.load(file)
 
 browsers_config = load_browsers_json()
