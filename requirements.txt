@@ -10,11 +10,11 @@ opencv-python
 Pillow
 psutil
 pytz
-git+https://github.com/Masterolic/pyrogram.git
+pyrofork
 requests
 tgcrypto
 uvloop
-git+https://github.com/alwaysmaysix/yt-dlp.git
+yt-dlp
 pymegatools
 https://github.com/dbiesecke/yt-dlp-streamtape-plugins/archive/refs/heads/master.zip
 cloudscraper
