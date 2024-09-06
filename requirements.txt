@@ -17,5 +17,5 @@ uvloop
 yt-dlp
 pymegatools
 https://github.com/dbiesecke/yt-dlp-streamtape-plugins/archive/refs/heads/master.zip
-cloudscraper
-
+git+https://github.com/alwaysmaysix/cloudscraper.git
+google-colab-selenium[undetected]
