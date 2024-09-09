@@ -1,3 +1,4 @@
+aria2c==1.37.0
 asyncio
 google-api-python-client
 google-auth-httplib2
