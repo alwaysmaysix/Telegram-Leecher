@@ -19,4 +19,4 @@ pymegatools
 https://github.com/dbiesecke/yt-dlp-streamtape-plugins/archive/refs/heads/master.zip
 git+https://github.com/alwaysmaysix/cloudscraper.git
 google-colab-selenium[undetected]
-aria2c==1.37.0
+
