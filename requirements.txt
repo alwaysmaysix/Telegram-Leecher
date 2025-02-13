@@ -10,7 +10,7 @@ opencv-python
 Pillow
 psutil
 pytz
-pyroblack
+git+https://github.com/cavallium/faster-pyrogram.git
 requests
 tgcrypto
 uvloop
