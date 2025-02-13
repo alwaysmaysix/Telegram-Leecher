@@ -1,12 +1,10 @@
+# copyright 2023 © Xron Trix | https://github.com/Xrontrix10
+
 import logging
 import yt_dlp
 from asyncio import sleep
 from threading import Thread
-from os import makedirs, path as ospath, remove
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import TimeoutException
+from os import makedirs, path as ospath
 from colab_leecher.utility.handler import cancelTask
 from colab_leecher.utility.variables import YTDL, MSG, Messages, Paths
 from colab_leecher.utility.helper import getTime, keyboard, sizeUnit, status_bar, sysINFO
@@ -16,125 +14,56 @@ from selenium.webdriver.chrome.options import Options
 from random import choice
 import time
 
-# Load browsers.json for user agents and headers
+# Load the browsers.json file
 def load_browsers_json():
     with open('/content/Telegram-Leecher/colab_leecher/browsers.json', 'r') as file:
         return json.load(file)
 
 browsers_config = load_browsers_json()
 
+# Function to choose a random user agent and corresponding headers
 def select_random_user_agent_and_headers():
     platform = choice(['desktop', 'mobile'])
     browser = choice(['chrome', 'firefox'])
-    os_choice = choice(['windows', 'linux', 'darwin']) if platform == 'desktop' else choice(['android', 'ios'])
+    
+    if platform == 'desktop':
+        os_choice = choice(['windows', 'linux', 'darwin'])
+    else:
+        os_choice = choice(['android', 'ios'])
+
     user_agent = browsers_config['user_agents'][platform][os_choice][browser]
     headers = browsers_config['headers'][browser]
+    
     return user_agent, headers
 
+# Setup Selenium with undetected Chrome and mimic real user behavior
 def setup_selenium():
     user_agent, headers = select_random_user_agent_and_headers()
+    
     options = Options()
     options.add_argument('--headless')
     options.add_argument('--no-sandbox')
     options.add_argument('--disable-dev-shm-usage')
     options.add_argument("--window-size=1920,1080")
-    options.add_argument("--disable-blink-features=AutomationControlled")
-    options.add_experimental_option("excludeSwitches", ["enable-automation"])
-    options.add_experimental_option("useAutomationExtension", False)
+    options.add_argument("--disable-infobars")
+    options.add_argument("--disable-popup-blocking")
+    options.add_argument("--ignore-certificate-errors")
+    options.add_argument("--incognito")
     options.add_argument(f'--user-agent={user_agent}')
+    
     for key, value in headers.items():
         options.add_argument(f'--{key.lower()}={value}')
+    
     driver = gs.Chrome(options=options)
-    driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
-    return driver, user_agent, headers
+    return driver
 
-def handle_cloudflare_challenge(driver, timeout=30):
-    try:
-        WebDriverWait(driver, timeout).until(
-            lambda d: d.title != "Just a moment..." and "challenge" not in d.current_url
-        )
-    except TimeoutException:
-        raise Exception("Cloudflare challenge timed out")
-
-def YouTubeDL(url):
-    global YTDL
-    driver, user_agent, headers = setup_selenium()
-    try:
-        driver.get(url)
-        handle_cloudflare_challenge(driver)
-        time.sleep(5)  # Additional delay to ensure page load
-        
-        # Save cookies for yt-dlp
-        cookies = driver.get_cookies()
-        cookie_file = "ytdl_cookies.txt"
-        with open(cookie_file, 'w') as f:
-            for cookie in cookies:
-                f.write(f"{cookie['name']}={cookie['value']}; Domain={cookie['domain']}; Path={cookie['path']}\n")
-        
-        # Configure yt-dlp with cookies and headers
-        ydl_opts = {
-            "format": "bestvideo[height<=360]+bestaudio/worst",
-            "cookiefile": cookie_file,
-            "http_headers": headers,
-            "user_agent": user_agent,
-            "allow_multiple_video_streams": True,
-            "allow_multiple_audio_streams": True,
-            "writethumbnail": True,
-            "concurrent-fragments": 4,
-            "allow_playlist_files": True,
-            "overwrites": True,
-            "postprocessors": [{"key": "FFmpegVideoConvertor", "preferedformat": "mp4"}],
-            "progress_hooks": [my_hook],
-            "writesubtitles": "srt",
-            "extractor_args": {"subtitlesformat": "srt"},
-            "logger": MyLogger(),
-        }
-        
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            if not ospath.exists(Paths.thumbnail_ytdl):
-                makedirs(Paths.thumbnail_ytdl)
-            info_dict = ydl.extract_info(url, download=False)
-            YTDL.header = "⌛ __Please WAIT a bit...__"
-            if "_type" in info_dict and info_dict["_type"] == "playlist":
-                playlist_name = info_dict["title"]
-                if not ospath.exists(ospath.join(Paths.down_path, playlist_name)):
-                    makedirs(ospath.join(Paths.down_path, playlist_name))
-                ydl_opts["outtmpl"] = {
-                    "default": f"{Paths.down_path}/{playlist_name}/%(title)s.%(ext)s",
-                    "thumbnail": f"{Paths.thumbnail_ytdl}/%(id)s.%(ext)s",
-                }
-                for entry in info_dict["entries"]:
-                    video_url = entry["webpage_url"]
-                    try:
-                        ydl.download([video_url])
-                    except yt_dlp.utils.DownloadError as e:
-                        if e.exc_info[0] == 36:
-                            ydl_opts["outtmpl"] = {
-                                "default": f"{Paths.down_path}/%(id)s.%(ext)s",
-                                "thumbnail": f"{Paths.thumbnail_ytdl}/%(id)s.%(ext)s",
-                            }
-                            ydl.download([video_url])
-            else:
-                YTDL.header = ""
-                ydl_opts["outtmpl"] = {
-                    "default": f"{Paths.down_path}/%(id)s.%(ext)s",
-                    "thumbnail": f"{Paths.thumbnail_ytdl}/%(id)s.%(ext)s",
-                }
-                try:
-                    ydl.download([url])
-                except yt_dlp.utils.DownloadError as e:
-                    if e.exc_info[0] == 36:
-                        ydl_opts["outtmpl"] = {
-                            "default": f"{Paths.down_path}/%(id)s.%(ext)s",
-                            "thumbnail": f"{Paths.thumbnail_ytdl}/%(id)s.%(ext)s",
-                        }
-                        ydl.download([url])
-    except Exception as e:
-        logging.error(f"YTDL ERROR: {e}")
-    finally:
-        driver.quit()
-        if ospath.exists(cookie_file):
-            remove(cookie_file)  # Clean up cookies file
+# Retrieve page content with Selenium
+def get_page_content(url, driver, request_interval=2, page_load_delay=2):
+    driver.get(url)
+    time.sleep(request_interval)
+    html_content = driver.page_source
+    time.sleep(page_load_delay)
+    return html_content
 
 async def YTDL_Status(link, num):
     global Messages, YTDL
@@ -188,6 +117,98 @@ class MyLogger:
         # if msg != "ERROR: Cancelling...":
         # print(msg)
         pass
+
+# Modified YouTubeDL function to use Selenium for Cloudflare handling
+def YouTubeDL(url):
+    global YTDL
+
+    def my_hook(d):
+        global YTDL
+
+        if d["status"] == "downloading":
+            total_bytes = d.get("total_bytes", 0)
+            dl_bytes = d.get("downloaded_bytes", 0)
+            percent = d.get("downloaded_percent", 0)
+            speed = d.get("speed", "N/A")
+            eta = d.get("eta", 0)
+
+            if total_bytes:
+                percent = round((float(dl_bytes) * 100 / float(total_bytes)), 2)
+
+            YTDL.header = ""
+            YTDL.speed = sizeUnit(speed) if speed else "N/A"
+            YTDL.percentage = percent
+            YTDL.eta = getTime(eta) if eta else "N/A"
+            YTDL.done = sizeUnit(dl_bytes) if dl_bytes else "N/A"
+            YTDL.left = sizeUnit(total_bytes) if total_bytes else "N/A"
+
+        elif d["status"] == "downloading fragment":
+            pass
+        else:
+            logging.info(d)
+
+    # Initialize Selenium and retrieve page content
+    driver = setup_selenium()
+    html_content = get_page_content(url, driver)
+
+    ydl_opts = {
+        "format": "bestvideo[height<=360]+bestaudio/worst",
+        "allow_multiple_video_streams": True,
+        "allow_multiple audio_streams": True,
+        "writethumbnail": True,
+        "--concurrent-fragments": 4,
+        "allow_playlist_files": True,
+        "overwrites": True,
+        "postprocessors": [{"key": "FFmpegVideoConvertor", "preferedformat": "mp4"}],
+        "progress_hooks": [my_hook],
+        "writesubtitles": "srt",
+        "extractor_args": {"subtitlesformat": "srt"},
+        "logger": MyLogger(),
+    }
+
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        if not ospath.exists(Paths.thumbnail_ytdl):
+            makedirs(Paths.thumbnail_ytdl)
+        try:
+            info_dict = ydl.extract_info(url, download=False)
+            YTDL.header = "⌛ __Please WAIT a bit...__"
+            if "_type" in info_dict and info_dict["_type"] == "playlist":
+                playlist_name = info_dict["title"]
+                if not ospath.exists(ospath.join(Paths.down_path, playlist_name)):
+                    makedirs(ospath.join(Paths.down_path, playlist_name))
+                ydl_opts["outtmpl"] = {
+                    "default": f"{Paths.down_path}/{playlist_name}/%(title)s.%(ext)s",
+                    "thumbnail": f"{Paths.thumbnail_ytdl}/%(id)s.%(ext)s",
+                }
+                for entry in info_dict["entries"]:
+                    video_url = entry["webpage_url"]
+                    try:
+                        ydl.download([video_url])
+                    except yt_dlp.utils.DownloadError as e:
+                        if e.exc_info[0] == 36:
+                            ydl_opts["outtmpl"] = {
+                                "default": f"{Paths.down_path}/%(id)s.%(ext)s",
+                                "thumbnail": f"{Paths.thumbnail_ytdl}/%(id)s.%(ext)s",
+                            }
+                            ydl.download([video_url])
+            else:
+                YTDL.header = ""
+                ydl_opts["outtmpl"] = {
+                    "default": f"{Paths.down_path}/%(id)s.%(ext)s",
+                    "thumbnail": f"{Paths.thumbnail_ytdl}/%(id)s.%(ext)s",
+                }
+                try:
+                    ydl.download([url])
+                except yt_dlp.utils.DownloadError as e:
+                    if e.exc_info[0] == 36:
+                        ydl_opts["outtmpl"] = {
+                            "default": f"{Paths.down_path}/%(id)s.%(ext)s",
+                            "thumbnail": f"{Paths.thumbnail_ytdl}/%(id)s.%(ext)s",
+                        }
+                        ydl.download([url])
+        except Exception as e:
+            logging.error(f"YTDL ERROR: {e}")
+
 
 async def get_YT_Name(link):
     with yt_dlp.YoutubeDL({"logger": MyLogger()}) as ydl:
